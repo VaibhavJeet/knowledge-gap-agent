@@ -1,0 +1,144 @@
+# MCP (Model Context Protocol) Configuration
+# Knowledge Gap Agent
+
+integrations:
+  # Database MCP - For storing gaps, FAQs, and content
+  database:
+    enabled: true
+    provider: postgresql  # postgresql, mongodb
+    connection_string: ${DATABASE_URL}
+    options:
+      pool_size: 10
+      max_overflow: 20
+
+  # Search Analytics MCP - For analyzing search patterns
+  search_analytics:
+    enabled: true
+    provider: elasticsearch  # elasticsearch, algolia
+    host: ${ELASTICSEARCH_HOST:-localhost}
+    port: ${ELASTICSEARCH_PORT:-9200}
+    index_prefix: knowledge_gaps
+    options:
+      batch_size: 100
+      refresh_interval: 30s
+
+  # Support Ticket MCP - For importing support data
+  support_tickets:
+    enabled: true
+    provider: zendesk  # zendesk, freshdesk, intercom
+    credentials:
+      api_key: ${SUPPORT_API_KEY}
+      subdomain: ${SUPPORT_SUBDOMAIN}
+    sync:
+      enabled: true
+      interval: 3600  # seconds
+      filters:
+        status: [closed, solved]
+        created_after: 30d
+
+  # Content Management MCP - For syncing documentation
+  content_management:
+    enabled: true
+    provider: notion  # notion, confluence, gitbook
+    credentials:
+      api_key: ${NOTION_API_KEY}
+    options:
+      database_ids:
+        - ${NOTION_DOCS_DB}
+        - ${NOTION_FAQ_DB}
+      sync_interval: 1800  # seconds
+
+  # Slack MCP - For notifications and insights
+  slack:
+    enabled: false
+    bot_token: ${SLACK_BOT_TOKEN}
+    channels:
+      gaps_alerts: ${SLACK_GAPS_CHANNEL}
+      weekly_report: ${SLACK_REPORT_CHANNEL}
+    notifications:
+      critical_gaps: true
+      weekly_summary: true
+      new_faqs: false
+
+  # Email MCP - For report delivery
+  email:
+    enabled: false
+    provider: smtp  # smtp, sendgrid, ses
+    host: ${SMTP_HOST}
+    port: ${SMTP_PORT:-587}
+    username: ${SMTP_USERNAME}
+    password: ${SMTP_PASSWORD}
+    from_address: knowledge-gaps@example.com
+    templates:
+      weekly_report: templates/weekly_report.html
+      gap_alert: templates/gap_alert.html
+
+  # Analytics MCP - For tracking and metrics
+  analytics:
+    enabled: false
+    provider: mixpanel  # mixpanel, amplitude, segment
+    api_key: ${ANALYTICS_API_KEY}
+    events:
+      - gap_detected
+      - faq_generated
+      - content_suggestion_created
+      - gap_resolved
+
+# Agent Configuration
+agents:
+  gap_detector:
+    enabled: true
+    min_occurrence_threshold: 3
+    confidence_threshold: 0.7
+    clustering:
+      algorithm: semantic  # semantic, keyword, hybrid
+      similarity_threshold: 0.8
+    sources:
+      - search_queries
+      - support_tickets
+      - user_feedback
+
+  faq_generator:
+    enabled: true
+    auto_publish: false
+    review_required: true
+    quality_threshold: 0.8
+    formats:
+      - structured
+      - conversational
+
+  content_analyzer:
+    enabled: true
+    coverage_threshold: 0.7
+    freshness_days: 90
+    metrics:
+      - coverage_score
+      - freshness_score
+      - engagement_score
+
+# Workflow Settings
+workflows:
+  full_analysis:
+    schedule: "0 0 * * 0"  # Weekly on Sunday
+    steps:
+      - detect_gaps
+      - generate_faqs
+      - analyze_coverage
+      - send_report
+
+  gap_monitoring:
+    schedule: "0 */6 * * *"  # Every 6 hours
+    steps:
+      - detect_gaps
+      - alert_critical
+
+# Vector Store Configuration
+vector_store:
+  provider: chromadb  # chromadb, pinecone, weaviate
+  host: ${CHROMA_HOST:-localhost}
+  port: ${CHROMA_PORT:-8000}
+  collections:
+    gaps: knowledge_gaps
+    content: content_embeddings
+    faqs: faq_embeddings
+  embedding_model: text-embedding-3-small
